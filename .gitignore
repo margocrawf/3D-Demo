@@ -1,0 +1,9 @@
+*.swp
+*.o
+MeshLoader
+balloon/*
+chevy/*
+heli/*
+*.png
+*.ob
+thunderbolt/*
