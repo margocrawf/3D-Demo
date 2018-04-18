@@ -173,6 +173,9 @@ vec3 cross(const vec3& a, const vec3& b)
 	return vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x );
 }
 
+float dot(vec3& a, vec3& b) {
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+}
 
 
 class Geometry
@@ -227,34 +230,34 @@ public:
 
         // vertex pos
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        static float vertexCoords[] = {0, 0, 0, 1,
-                                      -1, 0 -1, 0,
-                                       1, 0, -1, 0,
-                                       1, 0, 1, 0,
-                                       -1, 0, 1, 0,
-                                       -1, 0, -1, 0};
+        static float vertexCoords[] = {0.0, 0.0, 0.0, 1.0,
+                                      -1.0, 0.0 -1.0, 0.0,
+                                       1.0, 0.0, -1.0, 0.0,
+                                       1.0, 0.0, 1.0, 0.0,
+                                       -1.0, 0.0, 1.0, 0.0,
+                                       -1.0, 0.0, -1.0, 0.0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertexCoords), vertexCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
 
         //texture coords
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-        static float texCoords[] = {0, 0,
-                                     1, 0,
-                                     1, 1,
-                                     0, 1};
+        static float texCoords[] = {0.0, 0.0,
+                                     1.0, 0.0,
+                                     1.0, 1.0,
+                                     0.0, 1.0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
         
         // normals
         glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
-        static float normCoords[] = {0, 1, 0,
-                                     0, 1, 0, 
-                                     0, 1, 0,
-                                     0, 1, 0,
-                                     0, 1, 0,
-                                     0, 1, 0};
+        static float normCoords[] = {0.0, 1.0, 0.0,
+                                     0.0, 1.0, 0.0, 
+                                     0.0, 1.0, 0.0,
+                                     0.0, 1.0, 0.0,
+                                     0.0, 1.0, 0.0,
+                                     0.0, 1.0, 0.0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(normCoords), normCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -1119,6 +1122,7 @@ class Camera {
 
 public:
    vec3  wEye, wLookat, wVup, wAvi;
+   float alpha;
 	Camera()
 	{
 		wEye = vec3(0.0, 0.0, 2.0);
@@ -1203,6 +1207,14 @@ public:
     float rad_2_deg(float rad) {
         return rad * 180 / 3.14159;
     }
+
+    float sign(float x) {
+        if (x < 0.0) {
+            return -1.0;
+        } else {
+            return 1.0;
+        }
+    }
     
     void Move(float dt) {
 
@@ -1219,6 +1231,10 @@ public:
         wEye = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2])*velocity*dt;
         wLookat = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2]) * l;
         wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
+        vec3 zaxis = vec3(0, 0, 1);
+        float dotp = dot(norm, zaxis);
+        alpha = sign(dotp) * rad_2_deg(acos(dotp));
+        printf("%f\n", dot(norm, zaxis));
     }
 
 };
@@ -1232,9 +1248,9 @@ class Object
 	Shader* mShader;
 
 	vec3 scaling;
-	float orientation;
 
 public:
+	float orientation;
 	vec3 position;
 	Object(Mesh *m, vec3 position = vec3(0.0, 0.0, 0.0), vec3 scaling = vec3(1.0, 1.0, 1.0), float orientation = 0.0) : position(position), scaling(scaling), orientation(orientation)
 	{
@@ -1379,12 +1395,12 @@ public:
         meshes.push_back(new Mesh(geometries[2], materials[2]));
         objects.push_back(new Object(meshes[2], vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 40));
 
-        // avatar
+        // avatar (chevy)
         textures.push_back(new Texture("chevy/chevy.png"));
         materials.push_back(new Material(meshShader, textures[2]));
         geometries.push_back(new PolygonalMesh("chevy/chevy.obj"));
         meshes.push_back(new Mesh(geometries[3], materials[3]));
-        avi = new Object(meshes[3], vec3(0.0, -0.5, 0.9), vec3(0.05, 0.05, 0.05), 180);
+        avi = new Object(meshes[3], vec3(0.0, -0.5, 0.9), vec3(0.03, 0.03, 0.03), 180);
         objects.push_back(avi);
 
 
@@ -1404,6 +1420,7 @@ public:
 	void Draw()
 	{
         avi->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
+        avi->orientation = camera.alpha;
 		for(int i = 0; i < objects.size(); i++) 
         {
             objects[i]->Draw();
