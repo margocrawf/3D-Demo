@@ -735,8 +735,156 @@ public:
     }
 };
 
-class infGroundShader: public Shader
+class InfGroundShader: public Shader
 {
+public:
+    InfGroundShader() {
+        const char *vertexSource = "\n\
+        #version 130 \n\
+        precision highp float; \n\
+        \n\
+        in vec4 vertexPosition; \n\
+        in vec2 vertexTexCoord; \n\
+        in vec3 vertexNormal; \n\
+        uniform mat4 M, InvM, MVP; \n\
+        \n\
+        out vec2 texCoord; \n\
+        out vec4 worldPosition; \n\
+        out vec3 worldNormal; \n\
+        \n\
+        void main() { \n\
+        texCoord = vertexTexCoord; \n\
+        worldPosition = vertexPosition * M; \n\
+        worldNormal = (InvM * vec4(vertexNormal, 0.0)).xyz; \n\
+        gl_Position = vertexPosition * MVP; \n\
+        }";
+
+        const char* fragmentSource = "\n\
+        #version 130 \n\
+        precision highp float; \n\
+        uniform sampler2D samplerUnit; \n\
+        uniform vec3 La, Le; \n\
+        uniform vec3 ka, kd, ks; \n\
+        uniform float shininess; \n\
+        uniform vec3 worldEyePosition; \n\
+        uniform vec4 worldLightPosition; \n\
+        in vec2 texCoord; \n\
+        in vec4 worldPosition; \n\
+        in vec3 worldNormal; \n\
+        out vec4 fragmentColor; \n\
+        void main() { \n\
+        vec3 N = normalize(worldNormal); \n\
+        vec3 V = normalize(worldEyePosition * worldPosition.w - worldPosition.xyz); \n\
+        vec3 L = normalize(worldLightPosition.xyz * worldPosition.w - worldPosition.xyz * worldLightPosition.w); \n\
+        vec3 H = normalize(V + L); \n\
+        vec2 position = worldPosition.xz / worldPosition.w; \n\
+        vec2 tex = position.xy - floor(position.xy); \n\
+        vec3 texel = texture(samplerUnit, tex).xyz; \n\
+        vec3 color = La * ka + Le * kd * texel * max(0.0, dot(L, N)) + Le * ks * pow(max(0.0, dot(H, N)), shininess); \n\
+        fragmentColor = vec4(color, 1); \n\
+        }";
+
+		unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		if (!vertexShader) { printf("Error in vertex shader creation\n"); exit(1); }
+
+		glShaderSource(vertexShader, 1, &vertexSource, NULL);
+		glCompileShader(vertexShader);
+		checkShader(vertexShader, "Vertex shader error");
+
+		unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		if (!fragmentShader) { printf("Error in fragment shader creation\n"); exit(1); }
+
+		glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+		glCompileShader(fragmentShader);
+		checkShader(fragmentShader, "Fragment shader error");
+
+		shaderProgram = glCreateProgram();
+		if (!shaderProgram) { printf("Error in shader program creation\n"); exit(1); }
+
+		glAttachShader(shaderProgram, vertexShader);
+		glAttachShader(shaderProgram, fragmentShader);
+
+		glBindAttribLocation(shaderProgram, 1, "vertexTexCoord");
+		glBindAttribLocation(shaderProgram, 2, "vertexNormal");
+
+		glBindFragDataLocation(shaderProgram, 0, "fragmentColor");
+
+		glLinkProgram(shaderProgram);
+		checkLinking(shaderProgram);
+    }
+
+	void UploadSamplerID()
+	{
+		int samplerUnit = 0; 
+		int location = glGetUniformLocation(shaderProgram, "samplerUnit");
+		glUniform1i(location, samplerUnit);
+		glActiveTexture(GL_TEXTURE0 + samplerUnit); 
+	}
+
+	void UploadInvM(mat4& InvM)
+	{
+		int location = glGetUniformLocation(shaderProgram, "InvM");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, InvM); 
+		else printf("uniform InvM cannot be set\n");
+	}
+
+	void UploadMVP(mat4& MVP)
+	{
+		int location = glGetUniformLocation(shaderProgram, "MVP");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, MVP); 
+		else printf("uniform MVP cannot be set\n");
+	}
+
+	void UploadM(mat4& M)
+	{
+		int location = glGetUniformLocation(shaderProgram, "M");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, M); 
+		else printf("uniform M cannot be set\n");
+	}
+
+    void UploadMaterialAttributes(vec3& ka, vec3& kd, vec3& ks, float shininess) {
+
+        int location = glGetUniformLocation(shaderProgram, "ka");
+		if (location >= 0) glUniform3f(location, ka.x, ka.y, ka.z); 
+		else printf("uniform ka cannot be set\n");
+
+        location = glGetUniformLocation(shaderProgram, "kd");
+		if (location >= 0) glUniform3f(location, kd.x, kd.y, kd.z);
+		else printf("uniform kd cannot be set\n");
+
+        location = glGetUniformLocation(shaderProgram, "ks");
+		if (location >= 0) glUniform3f(location, ks.x, ks.y, ks.z); 
+		else printf("uniform ks cannot be set\n");
+
+        location = glGetUniformLocation(shaderProgram, "shininess");
+		if (location >= 0) glUniform1f(location, shininess);
+		else printf("uniform shininess cannot be set\n");
+
+    }
+
+    void UploadLightAttributes(vec3& La, vec3& Le, vec4& worldLightPosition) {
+
+        int location = glGetUniformLocation(shaderProgram, "La");
+		if (location >= 0) glUniform3f(location, La.x, La.y, La.z);
+		else printf("uniform La cannot be set\n");
+
+        location = glGetUniformLocation(shaderProgram, "Le");
+		if (location >= 0) glUniform3f(location, Le.x, Le.y, Le.z);
+		else printf("uniform Le cannot be set\n");
+
+        location = glGetUniformLocation(shaderProgram, "worldLightPosition");
+		if (location >= 0) glUniform4f(location, worldLightPosition.x, 
+                worldLightPosition.y, worldLightPosition.z, worldLightPosition.w);
+		else printf("uniform worldLightPosition cannot be set\n");
+    }
+
+    void UploadEyePosition(vec3& wEye) {
+
+        int location = glGetUniformLocation(shaderProgram, "worldEyePosition");
+		if (location >= 0) glUniform3f(location, wEye.x, wEye.y, wEye.z);
+		else printf("uniform wEye cannot be set\n");
+    }
+
 };
 
 
