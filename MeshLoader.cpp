@@ -225,32 +225,43 @@ public:
         glGenBuffers(3, vbo);
 
         // vertex pos
-        glBufferBind(GL_ARRAY_BUFFER, vbo[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
         static float vertexCoords[] = {-1, 0 -1,
                                        1, 0, -1,
                                        1, 0, 1,
-                                       -1, 0, 1};
+                                       -1, 0, 1,
+                                       -1, 0, -1};
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertexCoords), vertexCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
         //texture coords
-        glBufferBind(GL_ARRAY_BUFFER, vbo[1]);
-        static float texCoords[] = {-1, 0 -1,
-                                       1, 0, -1,
-                                       1, 0, 1,
-                                       -1, 0, 1};
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+        static float texCoords[] = {0, 0,
+                                     1, 0,
+                                     1, 1,
+                                     0, 1,
+                                     0, 0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
         
         // normals
-        glBufferBind(GL_ARRAY_BUFFER, vbo[2]);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
+        static float normCoords[] = {0, 1, 0,
+                                     0, 1, 0, 
+                                     0, 1, 0,
+                                     0, 1, 0,
+                                     0, 1, 0};
+        glBufferData(GL_ARRAY_BUFFER, sizeof(normCoords), normCoords, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
     }
 
     void Draw() {
         glEnable(GL_DEPTH_TEST);
-
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
         glDisable(GL_DEPTH_TEST);
     }
 
@@ -724,6 +735,10 @@ public:
     }
 };
 
+class infGroundShader: public Shader
+{
+};
+
 
 
 extern "C" unsigned char* stbi_load(char const *filename, int *x, int *y, int *comp, int req_comp);
@@ -1061,25 +1076,33 @@ public:
 	{
 		meshShader = new MeshShader();
 
+        // make tigger
 		textures.push_back(new Texture("tigger.png"));
 		materials.push_back(new Material(meshShader, textures[0], vec3(0.1, 0.1, 0.1),
                             vec3(0.6,0.6,0.6), vec3(0.3, 0.3, 0.3), 50)); 
 		geometries.push_back(new PolygonalMesh("tigger.obj"));		
 		meshes.push_back(new Mesh(geometries[0], materials[0]));
 		
-		Object* object = new Object(meshes[0], vec3(0.0, -1.0, 0.0), vec3(0.05, 0.05, 0.05), -60.0);
+		Object* object = new Object(meshes[0], vec3(0.0, -1.0, 0.0), vec3(0.05, 0.05, 0.05), -90.0);
 		objects.push_back(object);
 
+        // make trees
 		textures.push_back(new Texture("tree.png"));
 		materials.push_back(new Material(meshShader, textures[1], vec3(0.1, 0.1, 0.1), 
                             vec3(0.9,0.9,0.9), vec3(0.0, 0.0, 0.0), 50)); 
 		geometries.push_back(new PolygonalMesh("tree.obj"));		
 		meshes.push_back(new Mesh(geometries[1], materials[1]));
 		
-		Object* ob = new Object(meshes[1], vec3(-0.8, 0.0, 0.0), vec3(0.025, 0.025, 0.025), -60.0);
+		Object* ob = new Object(meshes[1], vec3(-0.8, 0.0, 0.0), vec3(0.025, 0.025, 0.025), 0.0);
 		objects.push_back(ob);
 
-        objects.push_back( new Object(meshes[1], vec3(0.0, 0.0, 3.0), vec3(0.025, 0.025, 0.025), 60.0));
+        objects.push_back( new Object(meshes[1], vec3(0.0, 0.0, 3.0), vec3(0.025, 0.025, 0.025), 0.0));
+
+        // make floor
+        geometries.push_back(new TexturedQuad());
+        meshes.push_back(new Mesh(geometries[2], materials[1]));
+        objects.push_back(new Object(meshes[2], vec3(0.0, -1.0, -1.0), vec3(1.0, 1.0, 1.0), 0));
+
 
 	}
 
