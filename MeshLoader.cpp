@@ -218,30 +218,31 @@ public:
 class TexturedQuad: public Geometry
 {
     unsigned int vbo[3];
+
 public:
     TexturedQuad() {
         glBindVertexArray(vao);
 
-        glGenBuffers(3, vbo);
+        glGenBuffers(3, &vbo[0]);
 
         // vertex pos
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        static float vertexCoords[] = {-1, 0 -1,
-                                       1, 0, -1,
-                                       1, 0, 1,
-                                       -1, 0, 1,
-                                       -1, 0, -1};
+        static float vertexCoords[] = {0, 0, 0, 1,
+                                      -1, 0 -1, 0,
+                                       1, 0, -1, 0,
+                                       1, 0, 1, 0,
+                                       -1, 0, 1, 0,
+                                       -1, 0, -1, 0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertexCoords), vertexCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
 
         //texture coords
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
         static float texCoords[] = {0, 0,
                                      1, 0,
                                      1, 1,
-                                     0, 1,
-                                     0, 0};
+                                     0, 1};
         glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -250,6 +251,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, vbo[2]);
         static float normCoords[] = {0, 1, 0,
                                      0, 1, 0, 
+                                     0, 1, 0,
                                      0, 1, 0,
                                      0, 1, 0,
                                      0, 1, 0};
@@ -261,7 +263,7 @@ public:
     void Draw() {
         glEnable(GL_DEPTH_TEST);
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 5);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 6);
         glDisable(GL_DEPTH_TEST);
     }
 
@@ -559,6 +561,8 @@ public:
 	virtual void UploadInvM(mat4& InVM) { }
 
 	virtual void UploadMVP(mat4& MVP) { }
+
+    virtual void UploadVP(mat4& VP) { }
     
     virtual void UploadM(mat4& M) { }
 
@@ -735,10 +739,10 @@ public:
     }
 };
 
-class InfGroundShader: public Shader
+class InfiniteQuadShader: public Shader
 {
 public:
-    InfGroundShader() {
+    InfiniteQuadShader() {
         const char *vertexSource = "\n\
         #version 130 \n\
         precision highp float; \n\
@@ -887,6 +891,96 @@ public:
 
 };
 
+
+class ShadowShader: public Shader
+{
+public:
+	ShadowShader()
+	{
+        const char *vertexSource = "\n\
+        #version 130 \n\
+        precision highp float; \n\
+        \n\
+        in vec3 vertexPosition; \n\
+        in vec2 vertexTexCoord; \n\
+        in vec3 vertexNormal; \n\
+        uniform mat4 M, VP; \n\
+        uniform vec4 worldLightPosition; \n\
+        \n\
+        void main() { \n\
+        vec4 p = vec4(vertexPosition, 1) * M; \n\
+        vec3 s; \n\
+        s.y = -0.999; \n\
+        s.x = (p.x - worldLightPosition.x) / (p.y - worldLightPosition.y) * (s.y - worldLightPosition.y) + worldLightPosition.x; \n\
+        s.z = (p.z - worldLightPosition.z) / (p.y - worldLightPosition.y) * (s.y - worldLightPosition.y) + worldLightPosition.z; \n\
+        gl_Position = vec4(s, 1) * VP; \n\
+        }";
+
+		const char *fragmentSource = "\n\
+        #version 130 \n\
+        precision highp float; \n\
+        \n\
+        out vec4 fragmentColor; \n\
+        \n\
+        void main() \n\
+        { \n\
+            fragmentColor = vec4(0.0, 0.1, 0.0, 1); \n\
+        }";
+
+
+		unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		if (!vertexShader) { printf("Error in vertex shader creation\n"); exit(1); }
+
+		glShaderSource(vertexShader, 1, &vertexSource, NULL);
+		glCompileShader(vertexShader);
+		checkShader(vertexShader, "Vertex shader error");
+
+		unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		if (!fragmentShader) { printf("Error in fragment shader creation\n"); exit(1); }
+
+		glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+		glCompileShader(fragmentShader);
+		checkShader(fragmentShader, "Fragment shader error");
+
+		shaderProgram = glCreateProgram();
+		if (!shaderProgram) { printf("Error in shader program creation\n"); exit(1); }
+
+		glAttachShader(shaderProgram, vertexShader);
+		glAttachShader(shaderProgram, fragmentShader);
+
+		glBindAttribLocation(shaderProgram, 0, "vertexPosition");
+		glBindAttribLocation(shaderProgram, 1, "vertexTexCoord");
+		glBindAttribLocation(shaderProgram, 2, "vertexNormal");
+
+		glBindFragDataLocation(shaderProgram, 0, "fragmentColor");
+
+		glLinkProgram(shaderProgram);
+		checkLinking(shaderProgram);
+	}
+
+    void UploadVP(mat4& VP) { 
+		int location = glGetUniformLocation(shaderProgram, "VP");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, VP); 
+		else printf("uniform VP cannot be set\n");
+	}
+
+	void UploadM(mat4& M)
+	{
+		int location = glGetUniformLocation(shaderProgram, "M");
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, M); 
+		else printf("uniform M cannot be set\n");
+	}
+
+
+    void UploadLightAttributes(vec3& La, vec3& Le, vec4& worldLightPosition) {
+
+        int location = glGetUniformLocation(shaderProgram, "worldLightPosition");
+		if (location >= 0) glUniform4f(location, worldLightPosition.x, 
+                worldLightPosition.y, worldLightPosition.z, worldLightPosition.w);
+		else printf("uniform worldLightPosition cannot be set\n");
+    }
+
+};
 
 
 extern "C" unsigned char* stbi_load(char const *filename, int *x, int *y, int *comp, int req_comp);
@@ -1129,8 +1223,8 @@ Camera camera;
 
 class Object
 {
-	Shader* shader;
 	Mesh *mesh;
+	Shader* mShader;
 
 	vec3 position;
 	vec3 scaling;
@@ -1139,7 +1233,7 @@ class Object
 public:
 	Object(Mesh *m, vec3 position = vec3(0.0, 0.0, 0.0), vec3 scaling = vec3(1.0, 1.0, 1.0), float orientation = 0.0) : position(position), scaling(scaling), orientation(orientation)
 	{
-		shader = m->GetShader();
+		mShader = m->GetShader();
 		mesh = m;
 	}
 
@@ -1147,14 +1241,31 @@ public:
 
 	void Draw()
 	{
-        light->UploadAttributes(shader);
-		shader->Run();
+		mShader->Run();
+        light->UploadAttributes(mShader);
 		UploadAttributes();
 		mesh->Draw();
 	}
 
-	void UploadAttributes()
+    void DrawShadow(Shader* shadowShader) {
+        shadowShader->Run();
+        UploadAttributes(shadowShader);
+
+        vec3 pos = vec3(0.0, 100.0, 0.0);
+        light->SetPointLightSource( pos );
+        light->UploadAttributes(shadowShader);
+
+        camera.UploadAttributes(shadowShader);
+
+        mesh->Draw();
+
+    }
+
+	void UploadAttributes(Shader *shader=0)
 	{
+        if (shader == 0) {
+            shader = mShader;
+        }
 		mat4 T = mat4(
 			1.0,			0.0,			0.0,			0.0,
 			0.0,			1.0,			0.0,			0.0,
@@ -1207,6 +1318,8 @@ public:
 class Scene
 {
 	MeshShader *meshShader;
+    InfiniteQuadShader *groundShader;
+    ShadowShader *shadowShader;
 	
 	std::vector<Texture*> textures;
 	std::vector<Material*> materials;
@@ -1218,11 +1331,16 @@ public:
 	Scene() 
 	{ 
 		meshShader = 0;
+        groundShader = 0;
+        shadowShader = 0;
+
 	}
 
 	void Initialize()
 	{
 		meshShader = new MeshShader();
+        groundShader = new InfiniteQuadShader();
+        shadowShader = new ShadowShader();
 
         // make tigger
 		textures.push_back(new Texture("tigger.png"));
@@ -1234,7 +1352,7 @@ public:
 		Object* object = new Object(meshes[0], vec3(0.0, -1.0, 0.0), vec3(0.05, 0.05, 0.05), -90.0);
 		objects.push_back(object);
 
-        // make trees
+        // make tree
 		textures.push_back(new Texture("tree.png"));
 		materials.push_back(new Material(meshShader, textures[1], vec3(0.1, 0.1, 0.1), 
                             vec3(0.9,0.9,0.9), vec3(0.0, 0.0, 0.0), 50)); 
@@ -1244,12 +1362,15 @@ public:
 		Object* ob = new Object(meshes[1], vec3(-0.8, 0.0, 0.0), vec3(0.025, 0.025, 0.025), 0.0);
 		objects.push_back(ob);
 
+        // make the second tree
         objects.push_back( new Object(meshes[1], vec3(0.0, 0.0, 3.0), vec3(0.025, 0.025, 0.025), 0.0));
 
         // make floor
+        materials.push_back(new Material(groundShader, textures[1], vec3(0.1, 0.1, 0.1),
+                            vec3(0.6, 0.6, 0.6), vec3(0.3, 0.3, 0.3), 50));
         geometries.push_back(new TexturedQuad());
-        meshes.push_back(new Mesh(geometries[2], materials[1]));
-        objects.push_back(new Object(meshes[2], vec3(0.0, -1.0, -1.0), vec3(1.0, 1.0, 1.0), 0));
+        meshes.push_back(new Mesh(geometries[2], materials[2]));
+        objects.push_back(new Object(meshes[2], vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 40));
 
 
 	}
@@ -1267,7 +1388,11 @@ public:
 
 	void Draw()
 	{
-		for(int i = 0; i < objects.size(); i++) objects[i]->Draw();
+		for(int i = 0; i < objects.size(); i++) 
+        {
+            objects[i]->Draw();
+            objects[i]->DrawShadow(shadowShader);
+        }
 	}
 };
 
