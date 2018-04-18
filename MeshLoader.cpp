@@ -1114,15 +1114,16 @@ public:
 
 
 class Camera {
-   vec3  wEye, wLookat, wVup;
    float fov, asp, fp, bp;
    float velocity, angularVelocity;
 
 public:
+   vec3  wEye, wLookat, wVup, wAvi;
 	Camera()
 	{
 		wEye = vec3(0.0, 0.0, 2.0);
 		wLookat = vec3(0.0, 0.0, 0.0);
+        wAvi = vec3(0.0, 0.0, 0.2);
 		wVup = vec3(0.0, 1.0, 0.0);
 		fov = M_PI / 4.0; asp = 1.0; fp = 0.01; bp = 10.0;		
         velocity = 0.0; angularVelocity = 0.0;
@@ -1179,6 +1180,9 @@ public:
          } else if (keyboardState['o'] == true) {
              velocity = -2.0;
          } else { velocity = 0.0; }
+         if (keyboardState[24] == true) {
+             printf("up arrow!!!\n");
+         }
     }
 
     float len(vec3 a, vec3 b) {
@@ -1214,6 +1218,7 @@ public:
 
         wEye = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2])*velocity*dt;
         wLookat = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2]) * l;
+        wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
     }
 
 };
@@ -1226,11 +1231,11 @@ class Object
 	Mesh *mesh;
 	Shader* mShader;
 
-	vec3 position;
 	vec3 scaling;
 	float orientation;
 
 public:
+	vec3 position;
 	Object(Mesh *m, vec3 position = vec3(0.0, 0.0, 0.0), vec3 scaling = vec3(1.0, 1.0, 1.0), float orientation = 0.0) : position(position), scaling(scaling), orientation(orientation)
 	{
 		mShader = m->GetShader();
@@ -1320,6 +1325,8 @@ class Scene
 	MeshShader *meshShader;
     InfiniteQuadShader *groundShader;
     ShadowShader *shadowShader;
+
+    Object* avi;
 	
 	std::vector<Texture*> textures;
 	std::vector<Material*> materials;
@@ -1372,6 +1379,14 @@ public:
         meshes.push_back(new Mesh(geometries[2], materials[2]));
         objects.push_back(new Object(meshes[2], vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 40));
 
+        // avatar
+        textures.push_back(new Texture("chevy/chevy.png"));
+        materials.push_back(new Material(meshShader, textures[2]));
+        geometries.push_back(new PolygonalMesh("chevy/chevy.obj"));
+        meshes.push_back(new Mesh(geometries[3], materials[3]));
+        avi = new Object(meshes[3], vec3(0.0, -0.5, 0.9), vec3(0.05, 0.05, 0.05), 180);
+        objects.push_back(avi);
+
 
 	}
 
@@ -1388,6 +1403,7 @@ public:
 
 	void Draw()
 	{
+        avi->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
 		for(int i = 0; i < objects.size(); i++) 
         {
             objects[i]->Draw();
@@ -1431,6 +1447,23 @@ void onKeyboard(unsigned char key, int x, int y)
 void onKeyboardUp(unsigned char key, int x, int y)
 {
 	keyboardState[key] = false;
+}
+
+void onSpecialInput(int key, int x, int y) {
+    switch(key) {
+        case GLUT_KEY_UP:
+        printf("upupandaway\n");
+        break;
+
+        case GLUT_KEY_DOWN:
+        break;
+
+        case GLUT_KEY_LEFT:
+        break;
+
+        case GLUT_KEY_RIGHT:
+        break;
+    }
 }
 
 void onReshape(int winWidth, int winHeight) 
@@ -1484,6 +1517,7 @@ int main(int argc, char * argv[])
 	glutIdleFunc(onIdle);
 	glutKeyboardFunc(onKeyboard);
 	glutKeyboardUpFunc(onKeyboardUp);
+    glutSpecialFunc(onSpecialInput);
 	glutReshapeFunc(onReshape);
 
 	glutMainLoop();
