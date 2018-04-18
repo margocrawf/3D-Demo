@@ -215,6 +215,47 @@ public:
 	void Draw();
 };
 
+class TexturedQuad: public Geometry
+{
+    unsigned int vbo[3];
+public:
+    TexturedQuad() {
+        glBindVertexArray(vao);
+
+        glGenBuffers(3, vbo);
+
+        // vertex pos
+        glBufferBind(GL_ARRAY_BUFFER, vbo[0]);
+        static float vertexCoords[] = {-1, 0 -1,
+                                       1, 0, -1,
+                                       1, 0, 1,
+                                       -1, 0, 1};
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertexCoords), vertexCoords, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+        //texture coords
+        glBufferBind(GL_ARRAY_BUFFER, vbo[1]);
+        static float texCoords[] = {-1, 0 -1,
+                                       1, 0, -1,
+                                       1, 0, 1,
+                                       -1, 0, 1};
+        glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+        
+        // normals
+        glBufferBind(GL_ARRAY_BUFFER, vbo[2]);
+    }
+
+    void Draw() {
+        glEnable(GL_DEPTH_TEST);
+
+        glDisable(GL_DEPTH_TEST);
+    }
+
+};
+
 
 
 PolygonalMesh::PolygonalMesh(const char *filename)
@@ -943,8 +984,8 @@ public:
 
 	void Draw()
 	{
-		shader->Run();
         light->UploadAttributes(shader);
+		shader->Run();
 		UploadAttributes();
 		mesh->Draw();
 	}
@@ -994,9 +1035,9 @@ public:
 
 		mat4 MVP = M * camera.GetViewMatrix() * camera.GetProjectionMatrix();
 
+        shader->UploadM(M);
 		shader->UploadInvM(InvM);
 		shader->UploadMVP(MVP);
-        shader->UploadM(M);
 	}
 };
 
@@ -1022,7 +1063,7 @@ public:
 
 		textures.push_back(new Texture("tigger.png"));
 		materials.push_back(new Material(meshShader, textures[0], vec3(0.1, 0.1, 0.1),
-                            vec3(0.6,0.6,0.6), vec3(0.3, 0.3, 0.3), 99.0)); 
+                            vec3(0.6,0.6,0.6), vec3(0.3, 0.3, 0.3), 50)); 
 		geometries.push_back(new PolygonalMesh("tigger.obj"));		
 		meshes.push_back(new Mesh(geometries[0], materials[0]));
 		
@@ -1031,7 +1072,7 @@ public:
 
 		textures.push_back(new Texture("tree.png"));
 		materials.push_back(new Material(meshShader, textures[1], vec3(0.1, 0.1, 0.1), 
-                            vec3(0.6,0.6,0.6), vec3(0.3, 0.3, 0.3), 50.0)); 
+                            vec3(0.9,0.9,0.9), vec3(0.0, 0.0, 0.0), 50)); 
 		geometries.push_back(new PolygonalMesh("tree.obj"));		
 		meshes.push_back(new Mesh(geometries[1], materials[1]));
 		
@@ -1063,7 +1104,7 @@ Scene scene;
 
 void onInitialization() 
 {
-    light = new Light(vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 1.0), vec4(0.0, 5.0, 5.0, 0.0));
+    light = new Light(vec3(.5, .5, .5), vec3(1.5, 1.5, 1.5), vec4(-7.0, 1.0, 20.0, 0.0));
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	scene.Initialize();
