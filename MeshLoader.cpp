@@ -1405,8 +1405,10 @@ public:
             vec3 dir = dirs(ori);
             vec3 pos = chassis->position;
             printf("%f\n", chassis->orientation);
-                chassis->position = vec3(pos.x + dir.x*sin(3.14/180*chassis->orientation)*velocity, pos.y, pos.z+dir.z*cos(3.14/180*chassis->orientation)*velocity);
+            chassis->position = vec3(pos.x + dir.x*sin(3.14/180*chassis->orientation)*velocity, pos.y, pos.z+dir.z*cos(3.14/180*chassis->orientation)*velocity);
             chassis->orientation = chassis->orientation + angularVelocity*dt;
+            camera.wEye = vec3(pos.x - dir.x*sin(3.14/180*ori)*2, camera.wEye.y, pos.z - dir.z*cos(3.14/180*ori)*2);
+            camera.wLookat = chassis->position;
 
         }
             vec3 lPos = vec3(chassis->position.x, chassis->position.y+100, chassis->position.z);
