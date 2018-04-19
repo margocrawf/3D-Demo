@@ -1330,10 +1330,12 @@ public:
 		mat4 InvM = InvT * InvR * InvS;
 
 		mat4 MVP = M * camera.GetViewMatrix() * camera.GetProjectionMatrix();
+        mat4 VP = camera.GetViewMatrix() * camera.GetProjectionMatrix();
 
         shader->UploadM(M);
 		shader->UploadInvM(InvM);
 		shader->UploadMVP(MVP);
+        shader->UploadVP(VP);
 	}
 };
 
