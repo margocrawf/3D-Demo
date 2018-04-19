@@ -220,17 +220,18 @@ public:
 
 class TexturedQuad: public Geometry
 {
-    unsigned int vbo[3];
 
 public:
     TexturedQuad() {
+        unsigned int vbo[3];
+
         glBindVertexArray(vao);
 
         glGenBuffers(3, &vbo[0]);
 
         // vertex pos
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        static float vertexCoords[] = {0.0, 0.0, 0.0, 1.0,
+        static float vertexCoords[] = {0.0, -1.0, 0.0, 1.0,
                                       -1.0, 0.0 -1.0, 0.0,
                                        1.0, 0.0, -1.0, 0.0,
                                        1.0, 0.0, 1.0, 0.0,
@@ -811,6 +812,7 @@ public:
 		glAttachShader(shaderProgram, vertexShader);
 		glAttachShader(shaderProgram, fragmentShader);
 
+		glBindAttribLocation(shaderProgram, 0, "vertexPosition");
 		glBindAttribLocation(shaderProgram, 1, "vertexTexCoord");
 		glBindAttribLocation(shaderProgram, 2, "vertexNormal");
 
@@ -1392,7 +1394,7 @@ public:
                             vec3(0.6, 0.6, 0.6), vec3(0.3, 0.3, 0.3), 50));
         geometries.push_back(new TexturedQuad());
         meshes.push_back(new Mesh(geometries[2], materials[2]));
-        objects.push_back(new Object(meshes[2], vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 40));
+        objects.push_back(new Object(meshes[2], vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 0));
 
         // avatar (chevy)
         textures.push_back(new Texture("chevy/chevy.png"));
