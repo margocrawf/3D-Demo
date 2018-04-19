@@ -231,22 +231,22 @@ public:
 
         // vertex pos
         glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-        static float vertexCoords[] = {0.0, -1.0, 0.0, 1.0,
-                                      -1.0, 0.0 -1.0, 0.0,
-                                       1.0, 0.0, -1.0, 0.0,
-                                       1.0, 0.0, 1.0, 0.0,
+        static float vertexCoords[] = {0.0, 0.0, 0.0, 1.0,
                                        -1.0, 0.0, 1.0, 0.0,
-                                       -1.0, 0.0, -1.0, 0.0};
+                                       -1.0, 0.0, -1.0, 0.0,
+                                       1.0, 0.0, -1.0, 0.0,
+                                      1.0, 0.0, 1.0, 0.0,
+                                       -1.0, 0.0, 1.0, 0.0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertexCoords), vertexCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);
 
         //texture coords
         glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-        static float texCoords[] = {0.0, 0.0,
+        static float texCoords[] = {0.0, 1.0,
+                                     0.0, 0.0,
                                      1.0, 0.0,
-                                     1.0, 1.0,
-                                     0.0, 1.0};
+                                     1.0, 1.0};
         glBufferData(GL_ARRAY_BUFFER, sizeof(texCoords), texCoords, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -1394,7 +1394,7 @@ public:
                             vec3(0.6, 0.6, 0.6), vec3(0.3, 0.3, 0.3), 50));
         geometries.push_back(new TexturedQuad());
         meshes.push_back(new Mesh(geometries[2], materials[2]));
-        objects.push_back(new Object(meshes[2], vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 0));
+        objects.push_back(new Object(meshes[2], vec3(0.0, -1.0, 0.0), vec3(1.0, 1.0, 1.0), 0));
 
         // avatar (chevy)
         textures.push_back(new Texture("chevy/chevy.png"));
