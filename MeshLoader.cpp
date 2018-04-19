@@ -1123,10 +1123,12 @@ class Camera {
    float velocity, angularVelocity;
 
 public:
+   std::string state;
    vec3  wEye, wLookat, wVup, wAvi;
    float alpha;
 	Camera()
 	{
+        state = "followKeys";
 		wEye = vec3(0.0, 0.0, 2.0);
 		wLookat = vec3(0.0, 0.0, 0.0);
         wAvi = vec3(0.0, 0.0, 0.2);
@@ -1171,6 +1173,14 @@ public:
     }
 
     void Control() {
+        // trace mode
+         if (keyboardState['t'] == true) {
+             state = "heartTrace";
+         } if (keyboardState['h'] == true) {
+             state = "heliCam";
+         } if (keyboardState['c'] == true) {
+             state = "followKeys";
+         }
 
          // rotate negative angular velocity
          if (keyboardState['a'] == true) {
@@ -1186,9 +1196,6 @@ public:
          } else if (keyboardState['o'] == true) {
              velocity = -2.0;
          } else { velocity = 0.0; }
-         if (keyboardState[24] == true) {
-             printf("up arrow!!!\n");
-         }
     }
 
     float len(vec3 a, vec3 b) {
@@ -1219,23 +1226,27 @@ public:
     }
     
     void Move(float dt) {
+        if (state == "followKeys") {
+            vec3 norm = (wLookat - wEye).normalize();
+            float beta = angularVelocity * dt;
+            float l = len(wLookat, wEye);
+            mat4 rot = mat4(
+                    cos(beta), 0, sin(beta), 0,
+                    0, 1, 0, 0,
+                    -sin(beta), 0, cos(beta), 0,
+                    0, 0, 0, 1);
+            vec4 newNorm4 = vec4(norm.x, norm.y, norm.z, 1) * rot;
 
-        vec3 norm = (wLookat - wEye).normalize();
-        float beta = angularVelocity * dt;
-        float l = len(wLookat, wEye);
-        mat4 rot = mat4(
-                cos(beta), 0, sin(beta), 0,
-                0, 1, 0, 0,
-                -sin(beta), 0, cos(beta), 0,
-                0, 0, 0, 1);
-        vec4 newNorm4 = vec4(norm.x, norm.y, norm.z, 1) * rot;
+            wEye = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2])*velocity*dt;
+            wLookat = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2]) * l;
+            wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
+            vec3 zaxis = vec3(0, 0, 1);
+            float dotp = dot(norm, zaxis);
+            alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
+        } else if (state == "heliCam") {
+        } else if (state == "heartTrace") {
 
-        wEye = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2])*velocity*dt;
-        wLookat = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2]) * l;
-        wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
-        vec3 zaxis = vec3(0, 0, 1);
-        float dotp = dot(norm, zaxis);
-        alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
+        }
     }
 
 };
@@ -1345,17 +1356,64 @@ class Chevy
     Object* wheel;
     Light* spotlight;
     float wheelAngle;
+    float velocity, angularVelocity;
 public:
     Chevy(Object* chassis, Object* wheel, Light* spotlight): chassis(chassis), wheel(wheel), spotlight(spotlight)
     {
     }
 
-    void Draw() {
-        chassis->position = vec3(camera.wLookat.x, chassis->position.y, camera.wLookat.z);
-        chassis->orientation = camera.alpha;
-        vec3 lPos = vec3(chassis->position.x, chassis->position.y+100, chassis->position.z);
-        light->SetPointLightSource(lPos);
-        chassis->Draw();
+    void Control() {
+     // rotate negative angular velocity
+     if (keyboardState['a'] == true) {
+         angularVelocity = -100;
+     // rotate positive angular velocity (with dvorak keyboard)
+     } else if (keyboardState['e'] == true) {
+         angularVelocity = 100;
+     } else { angularVelocity = 0.0;}
+     // move forward (with dvorak keyboard)
+     if (keyboardState[','] ==  true) {
+         velocity = 0.02;
+     // move backward (with dvorak keyboard)
+     } else if (keyboardState['o'] == true) {
+         velocity = -0.02;
+     } else { velocity = 0.0; }
+    }
+
+    vec3 dirs(float angle) {
+        vec3 d = vec3(0, 0, 0);
+        angle = ( (int) angle % 360);
+        if ( (angle < 90) or (angle > 270)) {
+            d.z = 1;
+        } else {
+            d.z = -1;
+        }
+        if ( (angle < 180) ) {
+            d.x = -1;
+        } else {
+            d.x = 1;
+        }
+        return d;
+    }
+
+    void Draw(float dt) {
+        if (camera.state == "followKeys") {
+            chassis->position = vec3(camera.wLookat.x, chassis->position.y, camera.wLookat.z);
+            chassis->orientation = camera.alpha;
+        } else if (camera.state == "heliCam") {
+            float dAngle = angularVelocity*dt;
+            float ori = chassis->orientation;
+            vec3 dir = dirs(ori);
+            vec3 pos = chassis->position;
+            printf("%f\n", chassis->orientation);
+                chassis->position = vec3(pos.x + dir.x*sin(3.14/180*chassis->orientation)*velocity, pos.y, pos.z+dir.z*cos(3.14/180*chassis->orientation)*velocity);
+            chassis->orientation = chassis->orientation + angularVelocity*dt;
+
+        }
+            vec3 lPos = vec3(chassis->position.x, chassis->position.y+100, chassis->position.z);
+            light->SetPointLightSource(lPos);
+            chassis->Draw();
+
+        
     }
 
 };
@@ -1451,10 +1509,11 @@ public:
 		if(meshShader) delete meshShader;
 	}
 
-	void Draw()
+	void Draw(float dt=0.0)
 	{
         gnd->Draw();
-        chevy->Draw();
+        chevy->Control();
+        chevy->Draw(dt);
 		for(int i = 0; i < objects.size(); i++) 
         {
             objects[i]->Draw();
@@ -1503,7 +1562,6 @@ void onKeyboardUp(unsigned char key, int x, int y)
 void onSpecialInput(int key, int x, int y) {
     switch(key) {
         case GLUT_KEY_UP:
-        printf("upupandaway\n");
         break;
 
         case GLUT_KEY_DOWN:
@@ -1531,6 +1589,7 @@ void onIdle( ) {
 
     camera.Control();
     camera.Move(dt);
+    scene.Draw(dt);
 
     glutPostRedisplay();
 }
