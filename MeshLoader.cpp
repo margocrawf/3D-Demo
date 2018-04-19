@@ -1273,7 +1273,7 @@ public:
         shadowShader->Run();
         UploadAttributes(shadowShader);
 
-        vec3 pos = vec3(0.0, 100.0, 100.0);
+        vec3 pos = vec3(100.0, 100.0, 100.0);
         light->SetPointLightSource( pos );
         light->UploadAttributes(shadowShader);
 
@@ -1367,6 +1367,7 @@ class Scene
     ShadowShader *shadowShader;
 
     Object* avi;
+    Object* gnd;
     Chevy* chevy;
 	
 	std::vector<Texture*> textures;
@@ -1418,7 +1419,7 @@ public:
                             vec3(0.6, 0.6, 0.6), vec3(0.3, 0.3, 0.3), 50));
         geometries.push_back(new TexturedQuad());
         meshes.push_back(new Mesh(geometries[2], materials[2]));
-        objects.push_back(new Object(meshes[2], vec3(0.0, -1.0, 0.0), vec3(1.0, 1.0, 1.0), 0));
+        gnd = (new Object(meshes[2], vec3(0.0, -1.0, 0.0), vec3(1.0, 1.0, 1.0), 0));
 
         // avatar (chevy)
         textures.push_back(new Texture("chevy/chevy.png"));
@@ -1452,9 +1453,8 @@ public:
 
 	void Draw()
 	{
+        gnd->Draw();
         chevy->Draw();
-        //objects[4]->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
-        //objects[4]->orientation = camera.alpha;
 		for(int i = 0; i < objects.size(); i++) 
         {
             objects[i]->Draw();
