@@ -1040,7 +1040,7 @@ class Material
 public:
 	Material(Shader* sh, Texture* t = 0, 
              vec3 a=vec3(0.1,0.1,0.1), vec3 d=vec3(0.9,0.9,0.9), 
-             vec3 s=vec3(0.0,0.0,0.0), float shine=0.0)
+             vec3 s=vec3(0.0,0.0,0.0), float shine=20.0)
 	{
 		shader = sh;
 		texture = t;
@@ -1339,6 +1339,27 @@ public:
 	}
 };
 
+class Chevy
+{
+    Object* chassis;
+    Object* wheel;
+    Light* spotlight;
+    float wheelAngle;
+public:
+    Chevy(Object* chassis, Object* wheel, Light* spotlight): chassis(chassis), wheel(wheel), spotlight(spotlight)
+    {
+    }
+
+    void Draw() {
+        chassis->position = vec3(camera.wLookat.x, chassis->position.y, camera.wLookat.z);
+        chassis->orientation = camera.alpha;
+        vec3 lPos = vec3(chassis->position.x, chassis->position.y+100, chassis->position.z);
+        light->SetPointLightSource(lPos);
+        chassis->Draw();
+    }
+
+};
+
 class Scene
 {
 	MeshShader *meshShader;
@@ -1346,6 +1367,7 @@ class Scene
     ShadowShader *shadowShader;
 
     Object* avi;
+    Chevy* chevy;
 	
 	std::vector<Texture*> textures;
 	std::vector<Material*> materials;
@@ -1375,7 +1397,7 @@ public:
 		geometries.push_back(new PolygonalMesh("tigger.obj"));		
 		meshes.push_back(new Mesh(geometries[0], materials[0]));
 		
-		Object* object = new Object(meshes[0], vec3(0.0, -1.0, 0.0), vec3(0.05, 0.05, 0.05), -90.0);
+		Object* object = new Object(meshes[0], vec3(2.0, -1.0, -3.0), vec3(0.05, 0.05, 0.05), -90.0);
 		objects.push_back(object);
 
         // make tree
@@ -1404,6 +1426,14 @@ public:
         geometries.push_back(new PolygonalMesh("chevy/chassis.obj"));
         meshes.push_back(new Mesh(geometries[3], materials[3]));
         avi = new Object(meshes[3], vec3(0.0, -0.5, 0.9), vec3(0.03, 0.03, 0.03), 180);
+        
+        geometries.push_back(new PolygonalMesh("chevy/wheel.obj"));
+        meshes.push_back(new Mesh(geometries[4], materials[3]));
+        avi = new Object(meshes[3], vec3(0.0, -0.5, 0.9), vec3(0.03, 0.03, 0.03), 180);
+        Object* wheel = new Object(meshes[4], vec3(0.0, -0.5, 0.9), vec3(0.03, 0.03, 0.03), 180);
+
+        Light* chevLight = new Light(vec3(1.5, 1.5, 1.5), vec3(1.5, 1.5, 1.5), vec4(avi->position.x, avi->position.y, avi->position.z, 1));
+        chevy = new Chevy(avi, wheel, chevLight);
         objects.push_back(avi);
 
 
@@ -1422,8 +1452,9 @@ public:
 
 	void Draw()
 	{
-        objects[4]->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
-        objects[4]->orientation = camera.alpha;
+        chevy->Draw();
+        //objects[4]->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
+        //objects[4]->orientation = camera.alpha;
 		for(int i = 0; i < objects.size(); i++) 
         {
             objects[i]->Draw();
