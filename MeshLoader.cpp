@@ -1235,7 +1235,7 @@ public:
         wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
         vec3 zaxis = vec3(0, 0, 1);
         float dotp = dot(norm, zaxis);
-        alpha = -1 * sign(wLookat.x) *  rad_2_deg(acos(dotp));
+        alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
     }
 
 };
@@ -1273,7 +1273,7 @@ public:
         shadowShader->Run();
         UploadAttributes(shadowShader);
 
-        vec3 pos = vec3(0.0, 100.0, 0.0);
+        vec3 pos = vec3(0.0, 100.0, 100.0);
         light->SetPointLightSource( pos );
         light->UploadAttributes(shadowShader);
 
@@ -1401,7 +1401,7 @@ public:
         // avatar (chevy)
         textures.push_back(new Texture("chevy/chevy.png"));
         materials.push_back(new Material(meshShader, textures[2]));
-        geometries.push_back(new PolygonalMesh("chevy/chevy.obj"));
+        geometries.push_back(new PolygonalMesh("chevy/chassis.obj"));
         meshes.push_back(new Mesh(geometries[3], materials[3]));
         avi = new Object(meshes[3], vec3(0.0, -0.5, 0.9), vec3(0.03, 0.03, 0.03), 180);
         objects.push_back(avi);
@@ -1422,8 +1422,8 @@ public:
 
 	void Draw()
 	{
-        avi->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
-        avi->orientation = camera.alpha;
+        objects[4]->position = vec3(camera.wLookat.x, avi->position.y, camera.wLookat.z);
+        objects[4]->orientation = camera.alpha;
 		for(int i = 0; i < objects.size(); i++) 
         {
             objects[i]->Draw();
