@@ -1209,7 +1209,7 @@ public:
     }
 
     float sign(float x) {
-        if (x < 0.0) {
+        if ((x) < 0.0) {
             return -1.0;
         } else {
             return 1.0;
@@ -1233,8 +1233,7 @@ public:
         wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
         vec3 zaxis = vec3(0, 0, 1);
         float dotp = dot(norm, zaxis);
-        alpha = sign(dotp) * rad_2_deg(acos(dotp));
-        printf("%f\n", dot(norm, zaxis));
+        alpha = -1 * sign(wLookat.x) *  rad_2_deg(acos(dotp));
     }
 
 };
