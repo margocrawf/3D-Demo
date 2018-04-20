@@ -1122,7 +1122,7 @@ public:
 class Camera {
    float fov, asp, fp, bp;
    float velocity, angularVelocity;
-   int isTracing;
+   int isTracking;
    vec3 startPos;
    float t;
 
@@ -1132,7 +1132,7 @@ public:
    float alpha;
 	Camera()
 	{
-        isTracing = 0;
+        isTracking = 0;
         t = 0;
         state = "heliCam";
 		wEye = vec3(0.0, 0.0, 2.0);
@@ -1179,14 +1179,14 @@ public:
     }
 
     void Control() {
-        // trace mode
+        // trackShot mode
          if (keyboardState['t'] == true) {
-             state = "trace";
+             state = "trackShot";
          } else if (keyboardState['c'] == true) {
              state = "moveCam";
          } else {
              state = "heliCam";
-             isTracing = 0;
+             t = 0;
 
          }
 
@@ -1235,6 +1235,7 @@ public:
     
     void Move(float dt) {
         if (state == "moveCam") {
+            // move only the camera, not the avatar
             vec3 norm = (wLookat - wEye).normalize();
             float beta = angularVelocity * dt;
             float l = len(wLookat, wEye);
@@ -1247,18 +1248,9 @@ public:
 
             wEye = wEye + vec3(newNorm4.v[0], 0, newNorm4.v[2])*velocity*dt;
             wLookat = wEye + vec3(newNorm4.v[0], 0, newNorm4.v[2]) * l;
-            //wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
-            //vec3 zaxis = vec3(0, 0, 1);
-            //float dotp = dot(norm, zaxis);
-            //alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
         } else if (state == "heliCam") {
-            //
-        } else if (state == "trace") {
-            if (isTracing == 0) {
-                // just starting
-                startPos = wLookat;
-                isTracing += 1;
-            }
+            // camera motion will be determined after avatar position
+        } else if (state == "trackShot") {
             t += dt;
             wEye = vec3(wLookat.x + 5*cos(t), 3, wLookat.z + 5*sin(t));
             
@@ -1368,12 +1360,12 @@ public:
 
 class Chevy
 {
-    Object* chassis;
     Object* wheel;
     Light* spotlight;
     float wheelAngle;
     float velocity, angularVelocity;
 public:
+    Object* chassis;
     Chevy(Object* chassis, Object* wheel, Light* spotlight): chassis(chassis), wheel(wheel), spotlight(spotlight)
     {
     }
