@@ -1244,6 +1244,7 @@ public:
             float dotp = dot(norm, zaxis);
             alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
         } else if (state == "heliCam") {
+            //
         } else if (state == "heartTrace") {
 
         }
@@ -1365,32 +1366,31 @@ public:
     void Control() {
      // rotate negative angular velocity
      if (keyboardState['a'] == true) {
-         angularVelocity = -100;
+         angularVelocity = -100.0;
      // rotate positive angular velocity (with dvorak keyboard)
      } else if (keyboardState['e'] == true) {
-         angularVelocity = 100;
+         angularVelocity = 100.0;
      } else { angularVelocity = 0.0;}
      // move forward (with dvorak keyboard)
      if (keyboardState[','] ==  true) {
-         velocity = 0.02;
+         velocity = 2;
      // move backward (with dvorak keyboard)
      } else if (keyboardState['o'] == true) {
-         velocity = -0.02;
+         velocity = -2;
      } else { velocity = 0.0; }
     }
 
     vec3 dirs(float angle) {
         vec3 d = vec3(0, 0, 0);
         angle = ( (int) angle % 360);
-        if ( (angle < 90) or (angle > 270)) {
-            d.z = 1;
-        } else {
-            d.z = -1;
-        }
+        if (angle < 0) { angle = 360 + angle; }
+        //printf("%f   ", angle);
         if ( (angle < 180) ) {
+            d.z = 1;
             d.x = -1;
         } else {
-            d.x = 1;
+            d.z = 1;
+            d.x = -1;
         }
         return d;
     }
@@ -1404,8 +1404,8 @@ public:
             float ori = chassis->orientation;
             vec3 dir = dirs(ori);
             vec3 pos = chassis->position;
-            printf("%f\n", chassis->orientation);
-            chassis->position = vec3(pos.x + dir.x*sin(3.14/180*chassis->orientation)*velocity, pos.y, pos.z+dir.z*cos(3.14/180*chassis->orientation)*velocity);
+            //printf("%f\n", chassis->orientation);
+            chassis->position = vec3(pos.x + dir.x*sin(3.14/180*chassis->orientation)*velocity*dt, pos.y, pos.z+dir.z*cos(3.14/180*chassis->orientation)*velocity*dt);
             chassis->orientation = chassis->orientation + angularVelocity*dt;
             camera.wEye = vec3(pos.x - dir.x*sin(3.14/180*ori)*2, camera.wEye.y, pos.z - dir.z*cos(3.14/180*ori)*2);
             camera.wLookat = chassis->position;
@@ -1414,7 +1414,6 @@ public:
             vec3 lPos = vec3(chassis->position.x, chassis->position.y+100, chassis->position.z);
             light->SetPointLightSource(lPos);
             chassis->Draw();
-
         
     }
 
