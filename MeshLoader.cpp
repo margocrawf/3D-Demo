@@ -20,6 +20,7 @@
 #include <vector>
 #include <fstream>
 #include <algorithm> 
+#include "heart.cpp"
 const unsigned int windowWidth = 512, windowHeight = 512;
 
 int majorVersion = 3, minorVersion = 0;
@@ -1121,6 +1122,9 @@ public:
 class Camera {
    float fov, asp, fp, bp;
    float velocity, angularVelocity;
+   int heartInd;
+   vec3 startPos;
+   float t;
 
 public:
    std::string state;
@@ -1128,7 +1132,9 @@ public:
    float alpha;
 	Camera()
 	{
-        state = "followKeys";
+        heartInd = 0;
+        t = 0;
+        state = "heliCam";
 		wEye = vec3(0.0, 0.0, 2.0);
 		wLookat = vec3(0.0, 0.0, 0.0);
         wAvi = vec3(0.0, 0.0, 0.2);
@@ -1246,7 +1252,15 @@ public:
         } else if (state == "heliCam") {
             //
         } else if (state == "heartTrace") {
-
+            if (heartInd == 0) {
+                // just starting
+                startPos = wEye;
+                heartInd += 1;
+            }
+            wEye = vec3(wLookat.x, 5, wLookat.z);
+            t += dt;
+            wLookat = vec3(startPos.x + 3*cos(t), 0, startPos.z + 3*sin(t));
+            
         }
     }
 
@@ -1400,6 +1414,7 @@ public:
             chassis->position = vec3(camera.wLookat.x, chassis->position.y, camera.wLookat.z);
             chassis->orientation = camera.alpha;
         } else if (camera.state == "heliCam") {
+            // follow the avatar with the camera
             float dAngle = angularVelocity*dt;
             float ori = chassis->orientation;
             vec3 dir = dirs(ori);
@@ -1407,7 +1422,7 @@ public:
             //printf("%f\n", chassis->orientation);
             chassis->position = vec3(pos.x + dir.x*sin(3.14/180*chassis->orientation)*velocity*dt, pos.y, pos.z+dir.z*cos(3.14/180*chassis->orientation)*velocity*dt);
             chassis->orientation = chassis->orientation + angularVelocity*dt;
-            camera.wEye = vec3(pos.x - dir.x*sin(3.14/180*ori)*2, camera.wEye.y, pos.z - dir.z*cos(3.14/180*ori)*2);
+            camera.wEye = vec3(pos.x - dir.x*sin(3.14/180*ori)*2, 1, pos.z - dir.z*cos(3.14/180*ori)*2);
             camera.wLookat = chassis->position;
 
         }
