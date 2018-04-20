@@ -1122,7 +1122,7 @@ public:
 class Camera {
    float fov, asp, fp, bp;
    float velocity, angularVelocity;
-   int heartInd;
+   int isTracing;
    vec3 startPos;
    float t;
 
@@ -1132,7 +1132,7 @@ public:
    float alpha;
 	Camera()
 	{
-        heartInd = 0;
+        isTracing = 0;
         t = 0;
         state = "heliCam";
 		wEye = vec3(0.0, 0.0, 2.0);
@@ -1181,11 +1181,13 @@ public:
     void Control() {
         // trace mode
          if (keyboardState['t'] == true) {
-             state = "heartTrace";
-         } if (keyboardState['h'] == true) {
+             state = "trace";
+         } else if (keyboardState['c'] == true) {
+             state = "moveCam";
+         } else {
              state = "heliCam";
-         } if (keyboardState['c'] == true) {
-             state = "followKeys";
+             isTracing = 0;
+
          }
 
          // rotate negative angular velocity
@@ -1232,7 +1234,7 @@ public:
     }
     
     void Move(float dt) {
-        if (state == "followKeys") {
+        if (state == "moveCam") {
             vec3 norm = (wLookat - wEye).normalize();
             float beta = angularVelocity * dt;
             float l = len(wLookat, wEye);
@@ -1243,23 +1245,22 @@ public:
                     0, 0, 0, 1);
             vec4 newNorm4 = vec4(norm.x, norm.y, norm.z, 1) * rot;
 
-            wEye = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2])*velocity*dt;
-            wLookat = wEye + vec3(newNorm4.v[0], newNorm4.v[1], newNorm4.v[2]) * l;
-            wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
-            vec3 zaxis = vec3(0, 0, 1);
-            float dotp = dot(norm, zaxis);
-            alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
+            wEye = wEye + vec3(newNorm4.v[0], 0, newNorm4.v[2])*velocity*dt;
+            wLookat = wEye + vec3(newNorm4.v[0], 0, newNorm4.v[2]) * l;
+            //wAvi = wEye + vec3(newNorm4.x, newNorm4.y, newNorm4.z)*l*0.5;
+            //vec3 zaxis = vec3(0, 0, 1);
+            //float dotp = dot(norm, zaxis);
+            //alpha = -1 * sign(wLookat.x-wEye.x) *  rad_2_deg(acos(dotp));
         } else if (state == "heliCam") {
             //
-        } else if (state == "heartTrace") {
-            if (heartInd == 0) {
+        } else if (state == "trace") {
+            if (isTracing == 0) {
                 // just starting
-                startPos = wEye;
-                heartInd += 1;
+                startPos = wLookat;
+                isTracing += 1;
             }
-            wEye = vec3(wLookat.x, 5, wLookat.z);
             t += dt;
-            wLookat = vec3(startPos.x + 3*cos(t), 0, startPos.z + 3*sin(t));
+            wEye = vec3(wLookat.x + 5*cos(t), 3, wLookat.z + 5*sin(t));
             
         }
     }
@@ -1410,9 +1411,9 @@ public:
     }
 
     void Draw(float dt) {
-        if (camera.state == "followKeys") {
-            chassis->position = vec3(camera.wLookat.x, chassis->position.y, camera.wLookat.z);
-            chassis->orientation = camera.alpha;
+        if (camera.state == "moveCam") {
+            //chassis->position = vec3(camera.wLookat.x, chassis->position.y, camera.wLookat.z);
+            //chassis->orientation = camera.alpha;
         } else if (camera.state == "heliCam") {
             // follow the avatar with the camera
             float dAngle = angularVelocity*dt;
